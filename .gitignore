@@ -128,34 +128,39 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Project-specific exclusions
-# Cache directories
-cache/
-*.json
-
-# Data outputs (keep structure but exclude large files)
-data/outputs/*.csv
+# Project specific
 data/outputs/*.parquet
+data/outputs/*.csv
 data/outputs/*.json
-data/outputs/*.txt
+cache/*.json
+cache/*.db
+logs/*.log
 
-# Keep the outputs directory structure
-!data/outputs/.gitkeep
-
-# API keys and sensitive configuration
+# API Keys and secrets
+.env.local
+.env.production
+.env.staging
+secrets.yaml
 config/secrets.yaml
-config/api_keys.yaml
-*.key
-*.pem
 
-# IDE and editor files
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# React build
+frontend/build/
+frontend/dist/
+
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# OS generated files
+# OS
 .DS_Store
 .DS_Store?
 ._*
@@ -167,18 +172,40 @@ Thumbs.db
 # Docker
 .dockerignore
 
-# Logs
-*.log
-logs/
-
 # Temporary files
-tmp/
-temp/
 *.tmp
 *.temp
+temp/
+tmp/
 
-# Node.js
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Backup files
+*.bak
+*.backup
+backup/
+
+# Model files
+*.pth
+*.pkl
+*.joblib
+models/
+
+# Large data files
+*.zip
+*.tar.gz
+*.rar
+data/large/
+datasets/
+
+# Jupyter notebooks
+*.ipynb
+
+# Prefect
+.prefect/
+
+# MongoDB data
+data/db/

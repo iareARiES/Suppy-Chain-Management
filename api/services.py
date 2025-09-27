@@ -49,28 +49,64 @@ class SupplierService:
                 
             # Filter by tier if specified
             if tier is not None:
-                nodes = [node for node in nodes if node.tier == tier]
+                nodes = [node for node in nodes if getattr(node, 'tier', 0) == tier]
                 
             # Convert to API response format
             suppliers = []
             for node in nodes:
+                # Handle both dict and object responses
+                if isinstance(node, dict):
+                    node_id = node.get('node_id', f"supplier_{len(suppliers)+1}")
+                    name = node.get('name', 'Unknown Supplier')
+                    country = node.get('country', 'Unknown')
+                    region = node.get('region', 'Unknown')
+                    city = node.get('city', 'Unknown')
+                    lat = node.get('lat', 0.0)
+                    lon = node.get('lon', 0.0)
+                    tier = node.get('tier', 1.0)
+                    category = node.get('category', 'unknown')
+                    node_type = node.get('node_type', 'supplier')
+                    site_url = node.get('site_url', '')
+                    x_handle = node.get('x_handle', '')
+                    ticker = node.get('ticker', '')
+                else:
+                    node_id = getattr(node, 'node_id', f"supplier_{len(suppliers)+1}")
+                    name = getattr(node, 'name', 'Unknown Supplier')
+                    country = getattr(node, 'country', 'Unknown')
+                    region = getattr(node, 'region', 'Unknown')
+                    city = getattr(node, 'city', 'Unknown')
+                    lat = getattr(node, 'lat', 0.0)
+                    lon = getattr(node, 'lon', 0.0)
+                    tier = getattr(node, 'tier', 1.0)
+                    category = getattr(node, 'category', 'unknown')
+                    node_type = getattr(node, 'node_type', 'supplier')
+                    site_url = getattr(node, 'site_url', '')
+                    x_handle = getattr(node, 'x_handle', '')
+                    ticker = getattr(node, 'ticker', '')
+                
                 supplier = SupplierResponse(
-                    id=node.node_id,
-                    name=node.name,
-                    country=node.country,
-                    region=node.region,
-                    city=node.city,
-                    lat=node.lat,
-                    lon=node.lon,
-                    tier=node.tier,
-                    category=node.category,
-                    node_type=node.node_type,
-                    reliability_score=self._calculate_reliability_score(node),
-                    risk_score=self._calculate_risk_score(node),
+                    id=node_id,
+                    name=name,
+                    country=country,
+                    region=region,
+                    city=city,
+                    lat=lat,
+                    lon=lon,
+                    tier=tier,
+                    category=category,
+                    node_type=node_type,
+                    reliability_score=self._calculate_reliability_score_from_dict({
+                        'tier': tier, 'lat': lat, 'lon': lon
+                    }),
+                    risk_score=self._calculate_risk_score_from_dict({
+                        'tier': tier, 'lat': lat, 'lon': lon
+                    }),
                     last_updated=datetime.utcnow(),
                     status="active",
-                    website=node.site_url,
-                    contact_info=self._get_contact_info(node)
+                    website=site_url,
+                    contact_info=self._get_contact_info_from_dict({
+                        'site_url': site_url, 'x_handle': x_handle, 'ticker': ticker
+                    })
                 )
                 suppliers.append(supplier)
                 
@@ -124,10 +160,32 @@ class SupplierService:
         
         return max(0, min(100, base_score + variation))
         
+    def _calculate_reliability_score_from_dict(self, node_data: Dict[str, Any]) -> float:
+        """Calculate reliability score for a supplier from dict data."""
+        # Base score from tier
+        tier = node_data.get('tier', 1.0)
+        base_score = 100 - (tier * 10)
+        
+        # Add some randomness for demo
+        variation = random.uniform(-5, 5)
+        
+        return max(0, min(100, base_score + variation))
+        
     def _calculate_risk_score(self, node: Node) -> float:
         """Calculate risk score for a supplier."""
         # Higher tier = higher risk
         base_risk = node.tier * 15
+        
+        # Add some randomness for demo
+        variation = random.uniform(-10, 10)
+        
+        return max(0, min(100, base_risk + variation))
+        
+    def _calculate_risk_score_from_dict(self, node_data: Dict[str, Any]) -> float:
+        """Calculate risk score for a supplier from dict data."""
+        # Higher tier = higher risk
+        tier = node_data.get('tier', 1.0)
+        base_risk = tier * 15
         
         # Add some randomness for demo
         variation = random.uniform(-10, 10)
@@ -140,6 +198,14 @@ class SupplierService:
             "website": node.site_url or "",
             "twitter": node.x_handle or "",
             "ticker": node.ticker or ""
+        }
+        
+    def _get_contact_info_from_dict(self, node_data: Dict[str, str]) -> Dict[str, str]:
+        """Get contact information for a supplier from dict data."""
+        return {
+            "website": node_data.get('site_url') or '',
+            "twitter": node_data.get('x_handle') or '',
+            "ticker": node_data.get('ticker') or ''
         }
         
     def _get_mock_suppliers(self, limit: int) -> List[SupplierResponse]:
@@ -222,17 +288,31 @@ class RiskAnalysisService:
             # Get weather anomalies
             weather_anomalies = await self.models.weather_anomalies.find_many(limit=limit//2)
             for anomaly in weather_anomalies:
+                # Handle both dict and object responses
+                if isinstance(anomaly, dict):
+                    node_id = anomaly.get('node_id', f"weather_{len(risk_factors)+1}")
+                    anomaly_type = anomaly.get('anomaly_type', 'unknown')
+                    severity = anomaly.get('severity', 'medium')
+                    value = anomaly.get('value', 50.0)
+                    ts = anomaly.get('ts', datetime.utcnow())
+                else:
+                    node_id = getattr(anomaly, 'node_id', f"weather_{len(risk_factors)+1}")
+                    anomaly_type = getattr(anomaly, 'anomaly_type', 'unknown')
+                    severity = getattr(anomaly, 'severity', 'medium')
+                    value = getattr(anomaly, 'value', 50.0)
+                    ts = getattr(anomaly, 'ts', datetime.utcnow())
+                
                 risk_factor = RiskFactorResponse(
-                    id=f"weather_{anomaly.node_id}",
-                    name=f"Weather: {anomaly.anomaly_type.replace('_', ' ').title()}",
-                    level=self._map_severity_to_risk_level(anomaly.severity),
-                    impact=anomaly.value,
+                    id=f"weather_{node_id}",
+                    name=f"Weather: {anomaly_type.replace('_', ' ').title()}",
+                    level=self._map_severity_to_risk_level(severity),
+                    impact=value,
                     probability=80.0,
-                    description=f"Weather anomaly detected: {anomaly.anomaly_type}",
+                    description=f"Weather anomaly detected: {anomaly_type}",
                     category="weather",
-                    affected_regions=[anomaly.node_id],
+                    affected_regions=[node_id],
                     mitigation_strategies=["Alternative routes", "Buffer inventory"],
-                    last_updated=anomaly.ts,
+                    last_updated=ts,
                     source="weather_api",
                     confidence=85.0
                 )
@@ -241,19 +321,35 @@ class RiskAnalysisService:
             # Get extracted events
             extracted_events = await self.models.extracted_events.find_many(limit=limit//2)
             for event in extracted_events:
+                # Handle both dict and object responses
+                if isinstance(event, dict):
+                    node_id = event.get('node_id', f"event_{len(risk_factors)+1}")
+                    event_type = event.get('event_type', 'unknown')
+                    severity = event.get('severity', 'medium')
+                    confidence = event.get('confidence', 0.5)
+                    extracted_text = event.get('extracted_text', 'No description available')
+                    ts_event = event.get('ts_event', datetime.utcnow())
+                else:
+                    node_id = getattr(event, 'node_id', f"event_{len(risk_factors)+1}")
+                    event_type = getattr(event, 'event_type', 'unknown')
+                    severity = getattr(event, 'severity', 'medium')
+                    confidence = getattr(event, 'confidence', 0.5)
+                    extracted_text = getattr(event, 'extracted_text', 'No description available')
+                    ts_event = getattr(event, 'ts_event', datetime.utcnow())
+                
                 risk_factor = RiskFactorResponse(
-                    id=f"event_{event.node_id}",
-                    name=f"Event: {event.event_type.replace('_', ' ').title()}",
-                    level=self._map_severity_to_risk_level(event.severity or "medium"),
-                    impact=event.confidence * 100 if event.confidence else 50.0,
+                    id=f"event_{node_id}",
+                    name=f"Event: {event_type.replace('_', ' ').title()}",
+                    level=self._map_severity_to_risk_level(severity),
+                    impact=confidence * 100 if confidence else 50.0,
                     probability=70.0,
-                    description=event.extracted_text[:200] + "..." if len(event.extracted_text) > 200 else event.extracted_text,
+                    description=extracted_text[:200] + "..." if len(extracted_text) > 200 else extracted_text,
                     category="operational",
-                    affected_regions=[event.node_id],
+                    affected_regions=[node_id],
                     mitigation_strategies=["Contingency planning", "Alternative suppliers"],
-                    last_updated=event.ts_event,
+                    last_updated=ts_event,
                     source="news_analysis",
-                    confidence=event.confidence * 100 if event.confidence else 75.0
+                    confidence=confidence * 100 if confidence else 75.0
                 )
                 risk_factors.append(risk_factor)
                 
@@ -526,19 +622,35 @@ class AlertService:
             
             alerts = []
             for event in news_events:
+                # Handle both dict and object responses
+                if isinstance(event, dict):
+                    node_id = event.get('node_id', f"alert_{len(alerts)+1}")
+                    sentiment_score = event.get('sentiment_score', 0.0)
+                    headline = event.get('headline', 'No headline')
+                    snippet = event.get('snippet', '')
+                    region = event.get('region', 'Unknown')
+                    ts = event.get('ts', datetime.utcnow())
+                else:
+                    node_id = getattr(event, 'node_id', f"alert_{len(alerts)+1}")
+                    sentiment_score = getattr(event, 'sentiment_score', 0.0)
+                    headline = getattr(event, 'headline', 'No headline')
+                    snippet = getattr(event, 'snippet', '')
+                    region = getattr(event, 'region', 'Unknown')
+                    ts = getattr(event, 'ts', datetime.utcnow())
+                
                 # Convert news events to alerts based on sentiment
-                if event.sentiment_score and event.sentiment_score < -0.3:
+                if sentiment_score and sentiment_score < -0.3:
                     alert = AlertResponse(
-                        id=f"alert_{event.node_id}_{event.ts.timestamp()}",
-                        title=f"Negative News: {event.headline[:50]}...",
-                        message=event.snippet or event.headline,
-                        severity=AlertSeverity.WARNING if event.sentiment_score > -0.6 else AlertSeverity.ERROR,
+                        id=f"alert_{node_id}_{int(ts.timestamp()) if hasattr(ts, 'timestamp') else int(datetime.utcnow().timestamp())}",
+                        title=f"Negative News: {headline[:50]}...",
+                        message=snippet or headline,
+                        severity=AlertSeverity.WARNING if sentiment_score > -0.6 else AlertSeverity.ERROR,
                         category="news",
-                        affected_entities=[event.node_id],
-                        location=event.region,
-                        timestamp=event.ts,
+                        affected_entities=[node_id],
+                        location=region,
+                        timestamp=ts,
                         source="news_monitoring",
-                        impact_score=abs(event.sentiment_score) * 100,
+                        impact_score=abs(sentiment_score) * 100,
                         recommended_actions=["Monitor situation", "Contact supplier"]
                     )
                     alerts.append(alert)

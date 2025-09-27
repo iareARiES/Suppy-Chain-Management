@@ -14,9 +14,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Set environment variables (fallback if not in .env)
-os.environ['SERP_API_KEY'] = os.getenv('SERP_API_KEY', '33c27e947fc888db75873dae1fbf0d27a1084769c0bbd8c46ce14cd27c04d575')
-os.environ['WEATHER_API_KEY'] = os.getenv('WEATHER_API_KEY', '12cdd7b6c0a14759939174503251909')
-os.environ['GEMINI_API_KEY'] = os.getenv('GEMINI_API_KEY', 'AIzaSyCKsh8435QFEG4AWYbmglqt5iTLtmT5Mf0')
+# Note: These are example keys - replace with your actual API keys
+os.environ['SERP_API_KEY'] = os.getenv('SERP_API_KEY', '')
+os.environ['WEATHER_API_KEY'] = os.getenv('WEATHER_API_KEY', '')
+os.environ['GEMINI_API_KEY'] = os.getenv('GEMINI_API_KEY', '')
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

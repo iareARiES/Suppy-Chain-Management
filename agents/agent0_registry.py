@@ -9,7 +9,6 @@ from pathlib import Path
 
 from core.models import Node, AllowlistConfig
 from core.geo import get_geocoder
-from core.maps_geocoder import get_maps_geocoder
 from core.io import read_csv, write_json, read_yaml
 
 logger = logging.getLogger(__name__)
@@ -21,7 +20,6 @@ class RegistryAgent:
     def __init__(self, data_dir: str = "data"):
         self.data_dir = Path(data_dir)
         self.geocoder = get_geocoder()
-        self.maps_geocoder = get_maps_geocoder()
     
     def run(self) -> List[Dict[str, Any]]:
         """
@@ -123,7 +121,7 @@ class RegistryAgent:
     
     def _geocode_location(self, city: str, country: str, name: str) -> tuple:
         """
-        Geocode location to lat/lon coordinates using enhanced Google Maps API.
+        Geocode location to lat/lon coordinates using Google Maps API.
         
         Args:
             city: City name
@@ -133,15 +131,14 @@ class RegistryAgent:
         Returns:
             Tuple of (lat, lon) or (None, None) if geocoding fails
         """
-        # Try Google Maps API first for supplier-specific geocoding
+        # Try company geocoding first (Google Maps)
         if name:
-            maps_result = self.maps_geocoder.geocode_supplier(name, city, country)
-            if maps_result and maps_result.get('latitude') and maps_result.get('longitude'):
-                logger.info(f"Google Maps geocoded '{name}' to {maps_result['latitude']}, {maps_result['longitude']}")
-                return (maps_result['latitude'], maps_result['longitude'])
+            coords = self.geocoder.geocode_company(name, city, country)
+            if coords:
+                logger.info(f"Google Maps geocoded '{name}' to {coords[0]}, {coords[1]}")
+                return coords
         
-        # Fallback to traditional geocoding
-        # Try city, country first
+        # Fallback to city, country geocoding
         if city and country:
             coords = self.geocoder.geocode_city_country(city, country)
             if coords:

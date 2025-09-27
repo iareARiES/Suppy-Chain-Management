@@ -1,21 +1,93 @@
 version: '3.8'
 
 services:
-  supply-chain-analysis:
-    build: .
-    container_name: supply-chain-risk-analysis
+  # MongoDB Database
+  mongodb:
+    image: mongo:6.0
+    container_name: ceronix-mongodb
+    ports:
+      - "27017:27017"
     environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password123
+      - MONGO_INITDB_DATABASE=Ceronix
+    volumes:
+      - mongodb_data:/data/db
+      - ./config/mongodb-init.js:/docker-entrypoint-initdb.d/mongodb-init.js:ro
+    restart: unless-stopped
+    networks:
+      - ceronix-network
+
+  # FastAPI Backend
+  api:
+    build: .
+    container_name: ceronix-api
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGODB_HOST=mongodb
+      - MONGODB_PORT=27017
+      - MONGODB_DATABASE=Ceronix
+      - MONGODB_USERNAME=admin
+      - MONGODB_PASSWORD=password123
       - SERP_API_KEY=${SERP_API_KEY}
       - TWITTER_BEARER_TOKEN=${TWITTER_BEARER_TOKEN}
-      - OPENCAGE_KEY=${OPENCAGE_KEY}
+      - WEATHER_API_KEY=${WEATHER_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
       - LOG_LEVEL=INFO
     volumes:
       - ./data:/app/data
       - ./cache:/app/cache
       - ./logs:/app/logs
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+    networks:
+      - ceronix-network
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ceronix-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - ceronix-network
+
+  # Supply Chain Analysis Pipeline
+  supply-chain-analysis:
+    build: .
+    container_name: supply-chain-risk-analysis
+    environment:
+      - MONGODB_HOST=mongodb
+      - MONGODB_PORT=27017
+      - MONGODB_DATABASE=Ceronix
+      - MONGODB_USERNAME=admin
+      - MONGODB_PASSWORD=password123
+      - SERP_API_KEY=${SERP_API_KEY}
+      - TWITTER_BEARER_TOKEN=${TWITTER_BEARER_TOKEN}
+      - WEATHER_API_KEY=${WEATHER_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./data:/app/data
+      - ./cache:/app/cache
+      - ./logs:/app/logs
+    depends_on:
+      - mongodb
     command: python -m orchestrator.cli run-all
     restart: unless-stopped
+    networks:
+      - ceronix-network
 
+  # Prefect Server for Orchestration
   prefect-server:
     image: prefecthq/prefect:2-python3.11
     container_name: prefect-server
@@ -25,11 +97,12 @@ services:
       - PREFECT_API_URL=http://localhost:4200/api
     command: prefect server start --host 0.0.0.0
     restart: unless-stopped
+    networks:
+      - ceronix-network
 
-  # Optional: Redis for caching (not required for basic operation)
-  # redis:
-  #   image: redis:7-alpine
-  #   container_name: supply-chain-redis
-  #   ports:
-  #     - "6379:6379"
-  #   restart: unless-stopped
+volumes:
+  mongodb_data:
+
+networks:
+  ceronix-network:
+    driver: bridge

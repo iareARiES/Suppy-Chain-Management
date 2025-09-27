@@ -180,7 +180,8 @@ def neg_fraction(df: pd.DataFrame, hours: int = 72,
         neg_count = (group[sentiment_col] < 0).sum()
         return neg_count / len(group)
     
-    neg_frac = window_df.groupby('node_id').apply(calc_neg_frac).reset_index(name='neg_frac')
+    neg_frac = window_df.groupby('node_id').apply(calc_neg_frac).reset_index()
+    neg_frac.columns = ['node_id', 'neg_frac']
     
     return neg_frac
 
@@ -272,6 +273,10 @@ def news_velocity(df: pd.DataFrame, baseline_days: int = 30,
     # Calculate recent count (last 24 hours)
     recent_df = df[(df[time_col] >= recent_start) & (df[time_col] <= end_time)]
     recent_counts = recent_df.groupby('node_id').size().reset_index(name='recent_count')
+    
+    # Ensure unique node_ids
+    recent_counts = recent_counts.drop_duplicates(subset=['node_id'])
+    baseline_stats = baseline_stats.drop_duplicates(subset=['node_id'])
     
     # Calculate z-scores
     velocity_df = recent_counts.merge(baseline_stats, on='node_id', how='left')

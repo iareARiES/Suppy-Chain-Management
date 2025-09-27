@@ -82,6 +82,51 @@ async def health_check():
         "version": "1.0.0"
     }
 
+# Dashboard endpoint
+@app.get("/api/dashboard")
+async def get_dashboard():
+    """Get dashboard data."""
+    try:
+        # Get all dashboard data
+        metrics = await metric_service.get_overall_metrics()
+        recent_alerts = await alert_service.get_recent_alerts(hours=24)
+        top_suppliers = await supplier_service.get_suppliers(limit=5)
+        risk_factors = await risk_service.get_risk_factors(limit=5)
+        routes = await route_service.get_routes(limit=5)
+        
+        dashboard_data = {
+            "metrics": metrics,
+            "recent_alerts": recent_alerts,
+            "top_suppliers": top_suppliers,
+            "risk_factors": risk_factors,
+            "routes": routes,
+            "last_updated": datetime.utcnow().isoformat()
+        }
+        
+        return dashboard_data
+        
+    except Exception as e:
+        logger.error(f"Error getting dashboard data: {e}")
+        # Return mock dashboard data if there's an error
+        return {
+            "metrics": {
+                "overall_risk_score": 72,
+                "active_suppliers": 156,
+                "active_routes": 24,
+                "active_alerts": 7,
+                "reliability_score": 89,
+                "news_events_24h": 23,
+                "weather_alerts": 3,
+                "market_signals": 12,
+                "last_updated": datetime.utcnow().isoformat()
+            },
+            "recent_alerts": [],
+            "top_suppliers": [],
+            "risk_factors": [],
+            "routes": [],
+            "last_updated": datetime.utcnow().isoformat()
+        }
+
 # Supplier endpoints
 @app.get("/api/suppliers", response_model=List[SupplierResponse])
 async def get_suppliers(

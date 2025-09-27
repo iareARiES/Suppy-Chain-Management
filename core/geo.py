@@ -9,6 +9,8 @@ from geopy.distance import geodesic
 import logging
 from functools import lru_cache
 
+from .google_maps_geocoder import get_google_maps_geocoder
+
 logger = logging.getLogger(__name__)
 
 
@@ -49,11 +51,14 @@ class GeoCache:
 
 
 class Geocoder:
-    """Geocoding service with caching."""
+    """Geocoding service with caching and multiple providers."""
     
     def __init__(self, cache_file: str = "cache/geocoding.json"):
         self.cache = GeoCache(cache_file)
         self.geocoder = Nominatim(user_agent="supply-chain-risk-analysis")
+        
+        # Initialize Google Maps geocoder
+        self.google_maps_geocoder = get_google_maps_geocoder()
         
         # Try OpenCage if API key is available
         self.opencage_geocoder = None
@@ -86,11 +91,23 @@ class Geocoder:
         if cached:
             return (cached['lat'], cached['lon'])
         
-        # Try geocoding
+        # Try geocoding with multiple providers
         query = f"{city}, {country}"
         result = None
         
-        # Try OpenCage first if available
+        # Try Google Maps first if available
+        if self.google_maps_geocoder and self.google_maps_geocoder.api_key:
+            try:
+                google_result = self.google_maps_geocoder.geocode_address(query)
+                if google_result:
+                    lat, lon = google_result['lat'], google_result['lng']
+                    # Cache the result
+                    self.cache.set(cache_key, {'lat': lat, 'lon': lon})
+                    return (lat, lon)
+            except Exception as e:
+                logger.warning(f"Google Maps geocoding failed for {query}: {e}")
+        
+        # Try OpenCage if available
         if self.opencage_geocoder:
             try:
                 result = self.opencage_geocoder.geocode(query, timeout=10)
@@ -129,10 +146,22 @@ class Geocoder:
         if cached:
             return (cached['lat'], cached['lon'])
         
-        # Try geocoding
+        # Try geocoding with multiple providers
         result = None
         
-        # Try OpenCage first if available
+        # Try Google Maps first if available
+        if self.google_maps_geocoder and self.google_maps_geocoder.api_key:
+            try:
+                google_result = self.google_maps_geocoder.geocode_address(text)
+                if google_result:
+                    lat, lon = google_result['lat'], google_result['lng']
+                    # Cache the result
+                    self.cache.set(cache_key, {'lat': lat, 'lon': lon})
+                    return (lat, lon)
+            except Exception as e:
+                logger.warning(f"Google Maps geocoding failed for {text}: {e}")
+        
+        # Try OpenCage if available
         if self.opencage_geocoder:
             try:
                 result = self.opencage_geocoder.geocode(text, timeout=10)
@@ -154,6 +183,30 @@ class Geocoder:
             return (lat, lon)
         
         return None
+    
+    def geocode_company(self, company_name: str, city: str = "", country: str = "") -> Optional[Tuple[float, float]]:
+        """
+        Geocode a company by name and location using Google Maps.
+        
+        Args:
+            company_name: Company name
+            city: City name (optional)
+            country: Country name (optional)
+            
+        Returns:
+            Tuple of (latitude, longitude) or None if not found
+        """
+        if self.google_maps_geocoder and self.google_maps_geocoder.api_key:
+            return self.google_maps_geocoder.geocode_company(company_name, city, country)
+        
+        # Fallback to text geocoding
+        query_parts = [company_name]
+        if city:
+            query_parts.append(city)
+        if country:
+            query_parts.append(country)
+        
+        return self.geocode_text(", ".join(query_parts))
 
 
 def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:

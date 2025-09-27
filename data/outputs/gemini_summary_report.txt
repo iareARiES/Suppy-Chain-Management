@@ -1,0 +1,27 @@
+GEMINI AI SUPPLY CHAIN RISK ANALYSIS REPORT
+============================================================
+
+Analysis Date: 2025-09-27T10:41:57.989089
+Total Suppliers Analyzed: 13
+Average Risk Score: 0.450/1.00
+Average Confidence: 0.654/1.00
+
+RISK DISTRIBUTION:
+High Risk: 1 suppliers
+Medium Risk: 9 suppliers
+Low Risk: 3 suppliers
+
+TOP RISK SUPPLIERS:
+- Shenzhen Gongjin Electronics (T&W): 0.700 (HIGH) [Confidence: 0.700]
+- Jabil Inc.: 0.550 (MEDIUM) [Confidence: 0.750]
+- Flex Ltd.: 0.550 (MEDIUM) [Confidence: 0.750]
+- Sumitomo Electric Printed Circuits: 0.500 (MEDIUM) [Confidence: 0.700]
+- WUS Printed Circuit Co.: 0.450 (MEDIUM) [Confidence: 0.700]
+
+IMMEDIATE ACTIONS REQUIRED:
+- Shenzhen Gongjin Electronics (T&W)
+
+DATA QUALITY METRICS:
+- Suppliers with social data: 2
+- Suppliers with news data: 0
+- Suppliers with weather data: 0

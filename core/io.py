@@ -319,3 +319,15 @@ def clean_old_files(directory: str, pattern: str, max_age_days: int = 7) -> int:
         logger.error(f"Failed to clean old files in {directory}: {e}")
     
     return deleted_count
+
+
+def write_text(text: str, file_path: str) -> None:
+    """Write text to file."""
+    ensure_dir(file_path)
+    try:
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(text)
+        logger.info(f"Wrote text to {file_path}")
+    except Exception as e:
+        logger.error(f"Failed to write text to {file_path}: {e}")
+        raise

@@ -1,20 +1,36 @@
-/**
- * Custom React hooks for API data management
- */
-import { useState, useEffect, useCallback, useRef } from 'react';
-import apiService from '../services/api';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 
-// Hook for managing API data with loading and error states
-export const useApiData = (apiCall, dependencies = []) => {
+// API base URL
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
+// Custom hook for API calls
+const useApiCall = (endpoint, options = {}) => {
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Memoize options to prevent unnecessary re-renders
+  const memoizedOptions = useMemo(() => options, [JSON.stringify(options)]);
+
   const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    
     try {
-      setLoading(true);
-      setError(null);
-      const result = await apiCall();
+      const url = `${API_BASE_URL}${endpoint}`;
+      const response = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...memoizedOptions.headers,
+        },
+        ...memoizedOptions,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
       setData(result);
     } catch (err) {
       setError(err);
@@ -22,126 +38,113 @@ export const useApiData = (apiCall, dependencies = []) => {
     } finally {
       setLoading(false);
     }
-  }, dependencies);
+  }, [endpoint, memoizedOptions]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (memoizedOptions.autoFetch !== false) {
+      fetchData();
+    }
+  }, [fetchData, memoizedOptions.autoFetch]);
 
-  const refetch = useCallback(() => {
-    fetchData();
-  }, [fetchData]);
-
-  return { data, loading, error, refetch };
+  return { data, loading, error, refetch: fetchData };
 };
 
-// Hook for suppliers data
-export const useSuppliers = (filters = {}) => {
-  return useApiData(
-    () => apiService.getSuppliers(filters),
-    [JSON.stringify(filters)]
-  );
-};
-
-// Hook for risk factors data
-export const useRiskFactors = (filters = {}) => {
-  return useApiData(
-    () => apiService.getRiskFactors(filters),
-    [JSON.stringify(filters)]
-  );
-};
-
-// Hook for routes data
-export const useRoutes = (filters = {}) => {
-  return useApiData(
-    () => apiService.getRoutes(filters),
-    [JSON.stringify(filters)]
-  );
-};
-
-// Hook for alerts data
-export const useAlerts = (filters = {}) => {
-  return useApiData(
-    () => apiService.getAlerts(filters),
-    [JSON.stringify(filters)]
-  );
-};
-
-// Hook for metrics data
-export const useMetrics = () => {
-  return useApiData(() => apiService.getMetrics());
-};
-
-// Hook for dashboard data
+// Dashboard data hook with debouncing
 export const useDashboardData = () => {
-  return useApiData(() => apiService.getDashboardData());
-};
-
-// Hook for real-time updates via WebSocket
-export const useRealTimeUpdates = () => {
-  const [isConnected, setIsConnected] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState(null);
-  const [updateData, setUpdateData] = useState(null);
-  const wsRef = useRef(null);
+  const [debouncedData, setDebouncedData] = useState(null);
+  const { data, loading, error, refetch } = useApiCall('/api/dashboard');
 
   useEffect(() => {
-    // Connect to WebSocket
-    const ws = apiService.connectWebSocket();
-    wsRef.current = ws;
+    if (data) {
+      const timer = setTimeout(() => {
+        setDebouncedData(data);
+      }, 300); // 300ms debounce
+      
+      return () => clearTimeout(timer);
+    }
+  }, [data]);
 
-    // Add listeners
-    const handleConnection = (data) => {
-      setIsConnected(data.status === 'connected');
-    };
-
-    const handleMessage = (data) => {
-      setLastUpdate(new Date());
-      setUpdateData(data);
-    };
-
-    const handleError = (error) => {
-      console.error('WebSocket error:', error);
-      setIsConnected(false);
-    };
-
-    apiService.addWebSocketListener('connection', handleConnection);
-    apiService.addWebSocketListener('message', handleMessage);
-    apiService.addWebSocketListener('error', handleError);
-
-    // Cleanup
-    return () => {
-      apiService.removeWebSocketListener('connection', handleConnection);
-      apiService.removeWebSocketListener('message', handleMessage);
-      apiService.removeWebSocketListener('error', handleError);
-      apiService.disconnectWebSocket();
-    };
-  }, []);
-
-  return {
-    isConnected,
-    lastUpdate,
-    updateData,
-    reconnect: () => apiService.connectWebSocket()
-  };
+  return { data: debouncedData, loading, error, refetch };
 };
 
-// Hook for risk analysis
+// Suppliers hook
+export const useSuppliers = (filters = {}) => {
+  const queryParams = new URLSearchParams();
+  
+  if (filters.country) queryParams.append('country', filters.country);
+  if (filters.tier) queryParams.append('tier', filters.tier);
+  if (filters.limit) queryParams.append('limit', filters.limit);
+
+  const endpoint = `/api/suppliers${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+  return useApiCall(endpoint);
+};
+
+// Risk factors hook
+export const useRiskFactors = (filters = {}) => {
+  const queryParams = new URLSearchParams();
+  
+  if (filters.severity) queryParams.append('severity', filters.severity);
+  if (filters.limit) queryParams.append('limit', filters.limit);
+
+  const endpoint = `/api/risk-factors${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+  return useApiCall(endpoint);
+};
+
+// Routes hook
+export const useRoutes = (filters = {}) => {
+  const queryParams = new URLSearchParams();
+  
+  if (filters.risk_level) queryParams.append('risk_level', filters.risk_level);
+  if (filters.limit) queryParams.append('limit', filters.limit);
+
+  const endpoint = `/api/routes${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+  return useApiCall(endpoint);
+};
+
+// Alerts hook
+export const useAlerts = (filters = {}) => {
+  const queryParams = new URLSearchParams();
+  
+  if (filters.severity) queryParams.append('severity', filters.severity);
+  if (filters.limit) queryParams.append('limit', filters.limit);
+
+  const endpoint = `/api/alerts${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+  return useApiCall(endpoint);
+};
+
+// Metrics hook
+export const useMetrics = () => {
+  return useApiCall('/api/metrics');
+};
+
+// Risk analysis hook
 export const useRiskAnalysis = () => {
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const performAnalysis = useCallback(async (analysisRequest) => {
+  const performAnalysis = useCallback(async (request) => {
+    setLoading(true);
+    setError(null);
+    
     try {
-      setLoading(true);
-      setError(null);
-      const result = await apiService.analyzeRisk(analysisRequest);
+      const response = await fetch(`${API_BASE_URL}/api/risk-analysis`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
       setAnalysis(result);
-      return result;
     } catch (err) {
       setError(err);
       console.error('Risk analysis failed:', err);
-      throw err;
     } finally {
       setLoading(false);
     }
@@ -152,164 +155,70 @@ export const useRiskAnalysis = () => {
     setError(null);
   }, []);
 
-  return {
-    analysis,
-    loading,
-    error,
-    performAnalysis,
-    clearAnalysis
-  };
+  return { analysis, loading, error, performAnalysis, clearAnalysis };
 };
 
-// Hook for search functionality
-export const useSearch = () => {
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
+// Real-time updates hook
+export const useRealTimeUpdates = () => {
+  const [isConnected, setIsConnected] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState(null);
+  const [updateData, setUpdateData] = useState(null);
   const [error, setError] = useState(null);
-
-  const search = useCallback(async (query, filters = {}) => {
-    if (!query.trim()) {
-      setResults([]);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      const result = await apiService.search(query, filters);
-      setResults(result.results || []);
-    } catch (err) {
-      setError(err);
-      console.error('Search failed:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const clearResults = useCallback(() => {
-    setResults([]);
-    setError(null);
-  }, []);
-
-  return {
-    results,
-    loading,
-    error,
-    search,
-    clearResults
-  };
-};
-
-// Hook for data export
-export const useExport = () => {
-  const [exporting, setExporting] = useState(false);
-  const [error, setError] = useState(null);
-
-  const exportData = useCallback(async (dataType, format = 'csv', filters = {}) => {
-    try {
-      setExporting(true);
-      setError(null);
-      const result = await apiService.exportData(dataType, format, filters);
-      
-      // Create download link
-      const link = document.createElement('a');
-      link.href = result.download_url;
-      link.download = result.filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      return result;
-    } catch (err) {
-      setError(err);
-      console.error('Export failed:', err);
-      throw err;
-    } finally {
-      setExporting(false);
-    }
-  }, []);
-
-  return {
-    exporting,
-    error,
-    exportData
-  };
-};
-
-// Hook for managing component state with API integration
-export const useComponentState = (initialState = {}) => {
-  const [state, setState] = useState(initialState);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  const updateState = useCallback((updates) => {
-    setState(prev => ({ ...prev, ...updates }));
-  }, []);
-
-  const setLoadingState = useCallback((isLoading) => {
-    setLoading(isLoading);
-  }, []);
-
-  const setErrorState = useCallback((err) => {
-    setError(err);
-  }, []);
-
-  const resetState = useCallback(() => {
-    setState(initialState);
-    setLoading(false);
-    setError(null);
-  }, [initialState]);
-
-  return {
-    state,
-    loading,
-    error,
-    updateState,
-    setLoadingState,
-    setErrorState,
-    resetState
-  };
-};
-
-// Hook for debounced API calls
-export const useDebouncedApiCall = (apiCall, delay = 500) => {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const timeoutRef = useRef(null);
-
-  const debouncedCall = useCallback((...args) => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-
-    timeoutRef.current = setTimeout(async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const result = await apiCall(...args);
-        setData(result);
-      } catch (err) {
-        setError(err);
-        console.error('Debounced API call failed:', err);
-      } finally {
-        setLoading(false);
-      }
-    }, delay);
-  }, [apiCall, delay]);
 
   useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
+    const wsUrl = API_BASE_URL.replace('http', 'ws') + '/ws/updates';
+    const ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+      setIsConnected(true);
+      setError(null);
+      console.log('WebSocket connected');
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        setUpdateData(data);
+        setLastUpdate(new Date());
+      } catch (err) {
+        console.error('Failed to parse WebSocket message:', err);
       }
+    };
+
+    ws.onclose = () => {
+      setIsConnected(false);
+      console.log('WebSocket disconnected');
+    };
+
+    ws.onerror = (err) => {
+      setError(err);
+      console.error('WebSocket error:', err);
+    };
+
+    return () => {
+      ws.close();
     };
   }, []);
 
-  return {
-    data,
-    loading,
-    error,
-    debouncedCall
-  };
+  return { isConnected, lastUpdate, updateData, error };
 };
+
+// Health check hook
+export const useHealthCheck = () => {
+  return useApiCall('/api/health');
+};
+
+// Export all hooks
+const apiHooks = {
+  useDashboardData,
+  useSuppliers,
+  useRiskFactors,
+  useRoutes,
+  useAlerts,
+  useMetrics,
+  useRiskAnalysis,
+  useRealTimeUpdates,
+  useHealthCheck,
+};
+
+export default apiHooks;

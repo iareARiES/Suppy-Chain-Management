@@ -1,0 +1,18 @@
+SUPPLY CHAIN RISK ANALYSIS REPORT
+==================================================
+
+Analysis Date: 2025-09-27T10:41:58.136080
+Total Suppliers Analyzed: 13
+Average Risk Score: 9.0/100
+
+RISK DISTRIBUTION:
+High Risk: 0 suppliers
+Medium Risk: 0 suppliers
+Low Risk: 13 suppliers
+
+TOP RISK SUPPLIERS:
+- Jabil Inc.: 14.0 (LOW)
+- Flex Ltd.: 14.0 (LOW)
+- Quanta Computer: 13.5 (LOW)
+
+IMMEDIATE ACTIONS REQUIRED:

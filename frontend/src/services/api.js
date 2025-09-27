@@ -1,27 +1,28 @@
-/**
- * API service layer for CERONIX Supply Chain Risk Analysis
- */
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
-const WS_BASE_URL = process.env.REACT_APP_WS_URL || 'ws://localhost:8000/ws';
+// API service for CERONIX Supply Chain Risk Analysis Frontend
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 class ApiService {
   constructor() {
     this.baseURL = API_BASE_URL;
-    this.wsURL = WS_BASE_URL;
-    this.wsConnection = null;
-    this.wsListeners = new Map();
   }
 
-  // Generic HTTP request method
-  async request(endpoint, options = {}) {
+  // Generic API call method
+  async apiCall(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
-    const config = {
+    
+    const defaultOptions = {
       headers: {
         'Content-Type': 'application/json',
+      },
+    };
+
+    const config = {
+      ...defaultOptions,
+      ...options,
+      headers: {
+        ...defaultOptions.headers,
         ...options.headers,
       },
-      ...options,
     };
 
     try {
@@ -30,246 +31,303 @@ class ApiService {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       return await response.json();
     } catch (error) {
-      console.error(`API request failed for ${endpoint}:`, error);
+      console.error(`API call failed for ${endpoint}:`, error);
       throw error;
     }
   }
 
   // Health check
   async healthCheck() {
-    return this.request('/health');
+    return this.apiCall('/api/health');
   }
 
-  // Supplier endpoints
+  // Dashboard data
+  async getDashboardData() {
+    return this.apiCall('/api/dashboard');
+  }
+
+  // Suppliers
   async getSuppliers(filters = {}) {
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== null && value !== undefined) {
-        params.append(key, value);
-      }
-    });
+    const queryParams = new URLSearchParams();
     
-    const queryString = params.toString();
-    const endpoint = queryString ? `/suppliers?${queryString}` : '/suppliers';
-    return this.request(endpoint);
+    if (filters.country) queryParams.append('country', filters.country);
+    if (filters.tier) queryParams.append('tier', filters.tier);
+    if (filters.limit) queryParams.append('limit', filters.limit);
+
+    const endpoint = `/api/suppliers${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    return this.apiCall(endpoint);
   }
 
   async getSupplier(supplierId) {
-    return this.request(`/suppliers/${supplierId}`);
+    return this.apiCall(`/api/suppliers/${supplierId}`);
   }
 
-  // Risk analysis endpoints
+  // Risk factors
   async getRiskFactors(filters = {}) {
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== null && value !== undefined) {
-        params.append(key, value);
-      }
-    });
+    const queryParams = new URLSearchParams();
     
-    const queryString = params.toString();
-    const endpoint = queryString ? `/risk-factors?${queryString}` : '/risk-factors';
-    return this.request(endpoint);
+    if (filters.severity) queryParams.append('severity', filters.severity);
+    if (filters.limit) queryParams.append('limit', filters.limit);
+
+    const endpoint = `/api/risk-factors${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    return this.apiCall(endpoint);
   }
 
-  async analyzeRisk(analysisRequest) {
-    return this.request('/risk-analysis', {
+  // Risk analysis
+  async performRiskAnalysis(request) {
+    return this.apiCall('/api/risk-analysis', {
       method: 'POST',
-      body: JSON.stringify(analysisRequest),
+      body: JSON.stringify(request),
     });
   }
 
-  // Route endpoints
+  // Routes
   async getRoutes(filters = {}) {
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== null && value !== undefined) {
-        params.append(key, value);
-      }
-    });
+    const queryParams = new URLSearchParams();
     
-    const queryString = params.toString();
-    const endpoint = queryString ? `/routes?${queryString}` : '/routes';
-    return this.request(endpoint);
+    if (filters.risk_level) queryParams.append('risk_level', filters.risk_level);
+    if (filters.limit) queryParams.append('limit', filters.limit);
+
+    const endpoint = `/api/routes${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    return this.apiCall(endpoint);
   }
 
   async getRoute(routeId) {
-    return this.request(`/routes/${routeId}`);
+    return this.apiCall(`/api/routes/${routeId}`);
   }
 
-  // Alert endpoints
+  // Alerts
   async getAlerts(filters = {}) {
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== null && value !== undefined) {
-        params.append(key, value);
-      }
-    });
+    const queryParams = new URLSearchParams();
     
-    const queryString = params.toString();
-    const endpoint = queryString ? `/alerts?${queryString}` : '/alerts';
-    return this.request(endpoint);
+    if (filters.severity) queryParams.append('severity', filters.severity);
+    if (filters.limit) queryParams.append('limit', filters.limit);
+
+    const endpoint = `/api/alerts${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    return this.apiCall(endpoint);
   }
 
   async getRecentAlerts(hours = 24) {
-    return this.request(`/alerts/recent?hours=${hours}`);
+    const queryParams = new URLSearchParams();
+    queryParams.append('hours', hours);
+
+    const endpoint = `/api/alerts/recent?${queryParams.toString()}`;
+    return this.apiCall(endpoint);
   }
 
-  // Metrics endpoints
+  // Metrics
   async getMetrics() {
-    return this.request('/metrics');
+    return this.apiCall('/api/metrics');
   }
 
   async getMetricTrends(days = 7) {
-    return this.request(`/metrics/trends?days=${days}`);
+    const queryParams = new URLSearchParams();
+    queryParams.append('days', days);
+
+    const endpoint = `/api/metrics/trends?${queryParams.toString()}`;
+    return this.apiCall(endpoint);
   }
 
-  // WebSocket connection management
-  connectWebSocket() {
-    if (this.wsConnection && this.wsConnection.readyState === WebSocket.OPEN) {
-      return this.wsConnection;
-    }
-
-    this.wsConnection = new WebSocket(this.wsURL + '/updates');
-    
-    this.wsConnection.onopen = () => {
-      console.log('WebSocket connected');
-      this.notifyListeners('connection', { status: 'connected' });
-    };
-
-    this.wsConnection.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        this.notifyListeners('message', data);
-      } catch (error) {
-        console.error('Error parsing WebSocket message:', error);
-      }
-    };
-
-    this.wsConnection.onclose = () => {
-      console.log('WebSocket disconnected');
-      this.notifyListeners('connection', { status: 'disconnected' });
-      
-      // Attempt to reconnect after 5 seconds
-      setTimeout(() => {
-        if (this.wsConnection.readyState === WebSocket.CLOSED) {
-          this.connectWebSocket();
-        }
-      }, 5000);
-    };
-
-    this.wsConnection.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      this.notifyListeners('error', error);
-    };
-
-    return this.wsConnection;
-  }
-
-  disconnectWebSocket() {
-    if (this.wsConnection) {
-      this.wsConnection.close();
-      this.wsConnection = null;
-    }
-  }
-
-  // WebSocket event listeners
-  addWebSocketListener(event, callback) {
-    if (!this.wsListeners.has(event)) {
-      this.wsListeners.set(event, []);
-    }
-    this.wsListeners.get(event).push(callback);
-  }
-
-  removeWebSocketListener(event, callback) {
-    if (this.wsListeners.has(event)) {
-      const listeners = this.wsListeners.get(event);
-      const index = listeners.indexOf(callback);
-      if (index > -1) {
-        listeners.splice(index, 1);
-      }
-    }
-  }
-
-  notifyListeners(event, data) {
-    if (this.wsListeners.has(event)) {
-      this.wsListeners.get(event).forEach(callback => {
-        try {
-          callback(data);
-        } catch (error) {
-          console.error('Error in WebSocket listener:', error);
-        }
-      });
-    }
-  }
-
-  // Utility methods
-  async getDashboardData() {
-    try {
-      const [metrics, riskFactors, routes, alerts, suppliers] = await Promise.all([
-        this.getMetrics(),
-        this.getRiskFactors({ limit: 10 }),
-        this.getRoutes({ limit: 10 }),
-        this.getRecentAlerts(24),
-        this.getSuppliers({ limit: 20 })
-      ]);
-
-      return {
-        metrics,
-        riskFactors,
-        routes,
-        alerts,
-        suppliers,
-        lastUpdated: new Date().toISOString()
-      };
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      throw error;
-    }
+  // WebSocket connection
+  createWebSocketConnection() {
+    const wsUrl = this.baseURL.replace('http', 'ws') + '/ws/updates';
+    return new WebSocket(wsUrl);
   }
 
   // Search functionality
   async search(query, filters = {}) {
-    return this.request('/search', {
+    const searchRequest = {
+      query,
+      filters,
+      limit: filters.limit || 20,
+      offset: filters.offset || 0,
+    };
+
+    return this.apiCall('/api/search', {
       method: 'POST',
-      body: JSON.stringify({ query, filters }),
+      body: JSON.stringify(searchRequest),
     });
   }
 
   // Export functionality
   async exportData(dataType, format = 'csv', filters = {}) {
-    return this.request('/export', {
+    const exportRequest = {
+      data_type: dataType,
+      format,
+      filters,
+      include_metadata: true,
+    };
+
+    return this.apiCall('/api/export', {
       method: 'POST',
-      body: JSON.stringify({ data_type: dataType, format, filters }),
+      body: JSON.stringify(exportRequest),
     });
+  }
+
+  // Batch operations
+  async batchGetSuppliers(supplierIds) {
+    const requests = supplierIds.map(id => this.getSupplier(id));
+    return Promise.all(requests);
+  }
+
+  async batchGetRoutes(routeIds) {
+    const requests = routeIds.map(id => this.getRoute(id));
+    return Promise.all(requests);
+  }
+
+  // Error handling utilities
+  handleApiError(error, context = '') {
+    console.error(`API Error ${context}:`, error);
+    
+    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      return {
+        type: 'NETWORK_ERROR',
+        message: 'Unable to connect to the server. Please check your connection.',
+        originalError: error,
+      };
+    }
+
+    if (error.message.includes('HTTP error')) {
+      const statusMatch = error.message.match(/status: (\d+)/);
+      const status = statusMatch ? parseInt(statusMatch[1]) : 500;
+      
+      return {
+        type: 'HTTP_ERROR',
+        status,
+        message: this.getHttpErrorMessage(status),
+        originalError: error,
+      };
+    }
+
+    return {
+      type: 'UNKNOWN_ERROR',
+      message: 'An unexpected error occurred. Please try again.',
+      originalError: error,
+    };
+  }
+
+  getHttpErrorMessage(status) {
+    switch (status) {
+      case 400:
+        return 'Bad request. Please check your input.';
+      case 401:
+        return 'Unauthorized. Please log in again.';
+      case 403:
+        return 'Forbidden. You do not have permission to access this resource.';
+      case 404:
+        return 'Resource not found.';
+      case 429:
+        return 'Too many requests. Please wait a moment and try again.';
+      case 500:
+        return 'Internal server error. Please try again later.';
+      case 502:
+        return 'Bad gateway. The server is temporarily unavailable.';
+      case 503:
+        return 'Service unavailable. Please try again later.';
+      default:
+        return `HTTP error ${status}. Please try again.`;
+    }
+  }
+
+  // Retry mechanism
+  async apiCallWithRetry(endpoint, options = {}, maxRetries = 3) {
+    let lastError;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await this.apiCall(endpoint, options);
+      } catch (error) {
+        lastError = error;
+        
+        if (attempt === maxRetries) {
+          throw error;
+        }
+
+        // Wait before retrying (exponential backoff)
+        const delay = Math.pow(2, attempt) * 1000;
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        console.warn(`API call failed (attempt ${attempt}), retrying in ${delay}ms...`);
+      }
+    }
+    
+    throw lastError;
+  }
+
+  // Cache management
+  constructor() {
+    this.baseURL = API_BASE_URL;
+    this.cache = new Map();
+    this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
+  }
+
+  getCacheKey(endpoint, options = {}) {
+    return `${endpoint}_${JSON.stringify(options)}`;
+  }
+
+  getFromCache(key) {
+    const cached = this.cache.get(key);
+    if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
+      return cached.data;
+    }
+    this.cache.delete(key);
+    return null;
+  }
+
+  setCache(key, data) {
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now(),
+    });
+  }
+
+  clearCache() {
+    this.cache.clear();
+  }
+
+  // Cached API call
+  async cachedApiCall(endpoint, options = {}) {
+    const cacheKey = this.getCacheKey(endpoint, options);
+    const cached = this.getFromCache(cacheKey);
+    
+    if (cached) {
+      return cached;
+    }
+
+    const data = await this.apiCall(endpoint, options);
+    this.setCache(cacheKey, data);
+    return data;
   }
 }
 
-// Create and export a singleton instance
+// Create and export singleton instance
 const apiService = new ApiService();
 export default apiService;
 
 // Export individual methods for convenience
 export const {
   healthCheck,
+  getDashboardData,
   getSuppliers,
   getSupplier,
   getRiskFactors,
-  analyzeRisk,
+  performRiskAnalysis,
   getRoutes,
   getRoute,
   getAlerts,
   getRecentAlerts,
   getMetrics,
   getMetricTrends,
-  connectWebSocket,
-  disconnectWebSocket,
-  addWebSocketListener,
-  removeWebSocketListener,
-  getDashboardData,
+  createWebSocketConnection,
   search,
-  exportData
+  exportData,
+  batchGetSuppliers,
+  batchGetRoutes,
+  handleApiError,
+  apiCallWithRetry,
+  cachedApiCall,
+  clearCache,
 } = apiService;

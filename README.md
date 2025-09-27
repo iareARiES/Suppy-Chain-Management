@@ -357,5 +357,6 @@ For issues and questions:
 - [ ] Multi-language support for global suppliers
 - [ ] Integration with more data sources
 - [ ] Advanced caching and performance optimization
-#   S u p p y - C h a i n - M a n a g e m e n t  
+#   S u p p y - C h a i n - M a n a g e m e n t 
+ 
  

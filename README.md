@@ -1,16 +1,19 @@
-# Multi-Agent Supply Chain Risk Analysis System
+# CERONIX Supply Chain Risk Analysis System
 
-A production-ready, multi-agent system that ingests region-scoped supplier/news sources, searches via SERP API, deep-scrapes with crawl4ai, enriches with weather/markets, aggregates features, and exports a train-ready CSV per node for supply chain risk prediction.
+A comprehensive, production-ready system that combines multi-agent data collection, real-time risk analysis, and interactive web dashboard for supply chain risk monitoring and prediction.
 
 ## 🚀 Features
 
 - **Multi-Agent Architecture**: 8 specialized agents for different data collection and processing tasks
 - **Real-time Data Collection**: RSS feeds, SERP API, social media, weather, and market data
 - **Deep Content Extraction**: crawl4ai for HTML/PDF processing and event extraction
-- **Geographic Intelligence**: Geocoding and location-based risk assessment
+- **Geographic Intelligence**: Google Maps integration with geocoding and location-based risk assessment
+- **Interactive Web Dashboard**: React-based frontend with real-time updates
+- **RESTful API**: FastAPI backend with comprehensive endpoints
 - **ML-Ready Features**: Structured feature engineering for supply chain risk prediction
 - **Production Orchestration**: Prefect-based workflow management
 - **Docker Support**: Containerized deployment with docker-compose
+- **MongoDB Integration**: Scalable data storage and retrieval
 
 ## 📋 Architecture
 
@@ -31,10 +34,17 @@ A production-ready, multi-agent system that ingests region-scoped supplier/news 
          │                       │                       │
          └───────────────────────┼───────────────────────┘
                                  │
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Agent 6       │    │   Agent 7       │    │   Web Dashboard │
+│   Features      │    │   Export        │    │   & API         │
+│   Builder       │    │   CSV           │    │   (React/FastAPI)│
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         └───────────────────────┼───────────────────────┘
+                                 │
                     ┌─────────────────┐
-                    │   Agent 6       │
-                    │   Export        │
-                    │   CSV           │
+                    │   MongoDB       │
+                    │   Database      │
                     └─────────────────┘
 ```
 
@@ -42,32 +52,38 @@ A production-ready, multi-agent system that ingests region-scoped supplier/news 
 
 ### Agents
 
-1. **Agent 0 - Registry**: Builds canonical supplier registry with geocoding
+1. **Agent 0 - Registry**: Builds canonical supplier registry with Google Maps geocoding
 2. **Agent 1 - Social**: Fetches X/Twitter posts for suppliers and news outlets
 3. **Agent 2 - News**: Collects news from RSS feeds and SERP API
 4. **Agent 3 - Crawl**: Deep crawls URLs and extracts structured events
 5. **Agent 4 - Weather**: Detects weather anomalies for each location
 6. **Agent 5 - Features**: Builds ML features from all data sources
 7. **Agent 6 - Export**: Validates and exports final CSV for ML pipeline
+8. **Agent 7 - Export**: Additional export and reporting capabilities
 
 ### Core Utilities
 
 - **Models**: Pydantic models for data validation
-- **Geo**: Geocoding and geographic utilities
+- **Geo**: Google Maps geocoding and geographic utilities
+- **Google Maps Geocoder**: Advanced location services integration
 - **NLP**: Sentiment analysis and event classification
 - **News**: RSS and SERP API integration
 - **IO**: Data persistence utilities
 - **Utils**: General utility functions
 - **Rate**: Rate limiting and retry logic
+- **Database**: MongoDB integration and utilities
+- **Schemas**: Database schemas and validation
 
 ## 📊 Data Flow
 
 ```
-Seed Suppliers → Registry → Geocoded Nodes
+Seed Suppliers → Registry → Geocoded Nodes (Google Maps)
      ↓
-News/Social/Weather/Crawl → Feature Engineering → ML-Ready CSV
+News/Social/Weather/Crawl → Feature Engineering → MongoDB Storage
      ↓
-Risk Prediction Pipeline (External ML System)
+Web Dashboard ← REST API ← Risk Analysis ← ML-Ready CSV
+     ↓
+Real-time Monitoring & Alerts
 ```
 
 ## 🚀 Quick Start
@@ -90,29 +106,57 @@ Edit `.env` file:
 
 ```bash
 # Required
-SERP_API_KEY=U2BP9bUMpLgbTRi1RFraq6hm
-WEATHER_API_KEY=12cdd7b6c0a14759939174503251909
+SERP_API_KEY=your_serp_api_key
+WEATHER_API_KEY=your_weather_api_key
+GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 
 # Optional (for enhanced features)
 TWITTER_BEARER_TOKEN=your_twitter_token
 OPENCAGE_KEY=your_opencage_key
+
+# Database Configuration
+MONGODB_HOST=localhost
+MONGODB_PORT=27017
+MONGODB_DATABASE=Ceronix
+MONGODB_USERNAME=your_username
+MONGODB_PASSWORD=your_password
 ```
 
-### 3. Run Pipeline
+### 3. Start the System
 
 ```bash
-# Run complete pipeline
-make run
+# Start backend API server
+python -m uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 
-# Or use CLI directly
-python -m orchestrator.cli run-all
+# Start frontend (in another terminal)
+cd frontend && npm start
+
+# Or use the integrated startup script
+python start_servers.py
 ```
 
-### 4. Check Results
+### 4. Access the System
+
+```bash
+# Backend API
+http://localhost:8000
+http://localhost:8000/docs  # API Documentation
+
+# Frontend Dashboard
+http://localhost:3000
+
+# Run complete pipeline
+python run_complete_pipeline.py
+```
+
+### 5. Check Results
 
 ```bash
 # View generated features
 cat data/outputs/features_today.csv
+
+# Check API health
+curl http://localhost:8000/api/health
 
 # Check logs
 tail -f logs/supply_agents.log
@@ -126,24 +170,41 @@ supply-agents/
 │   ├── agent0_registry.py
 │   ├── agent1_social.py
 │   ├── agent2_news.py
-│   ├── agent3_market.py
 │   ├── agent4_crawl.py
 │   ├── agent5_weather.py
 │   ├── agent6_features.py
 │   └── agent7_export.py
+├── api/                    # FastAPI backend
+│   ├── main.py            # API server
+│   ├── services.py        # Business logic
+│   ├── models.py          # API models
+│   └── database.py        # Database connection
+├── frontend/               # React frontend
+│   ├── src/
+│   │   ├── App.js         # Main app component
+│   │   ├── hooks/         # Custom React hooks
+│   │   └── services/      # API services
+│   ├── package.json       # Frontend dependencies
+│   └── Dockerfile         # Frontend container
 ├── core/                   # Core utilities
 │   ├── models.py
 │   ├── geo.py
+│   ├── google_maps_geocoder.py
 │   ├── nlp.py
 │   ├── news.py
 │   ├── io.py
 │   ├── utils.py
-│   └── rate.py
+│   ├── rate.py
+│   ├── db_models.py
+│   ├── schemas.py
+│   └── db_utils.py
 ├── orchestrator/           # Workflow orchestration
 │   ├── flow_daily.py
 │   └── cli.py
 ├── config/                 # Configuration
-│   └── settings.yaml
+│   ├── settings.yaml
+│   ├── mongodb.yaml
+│   └── mongodb-init.js
 ├── data/                   # Data storage
 │   ├── inputs/            # Seed data
 │   └── outputs/           # Generated data
@@ -151,10 +212,65 @@ supply-agents/
 ├── logs/                   # Log files
 ├── tests/                  # Test suite
 ├── requirements.txt        # Dependencies
+├── start_servers.py       # Integrated startup script
+├── setup_system.py        # System setup script
+├── test_system.py         # System testing script
 ├── Makefile               # Build commands
 ├── Dockerfile             # Container setup
 └── docker-compose.yaml    # Multi-service setup
 ```
+
+## 🌐 Web Dashboard & API
+
+### Backend API Endpoints
+
+The system provides a comprehensive REST API:
+
+```bash
+# Health Check
+GET /api/health
+
+# Dashboard Data
+GET /api/dashboard
+
+# Suppliers
+GET /api/suppliers
+GET /api/suppliers/{id}
+
+# Risk Analysis
+GET /api/risk-factors
+POST /api/risk-analysis
+
+# Routes
+GET /api/routes
+GET /api/routes/{id}
+
+# Alerts
+GET /api/alerts
+GET /api/alerts/recent
+
+# Metrics
+GET /api/metrics
+GET /api/metrics/trends
+
+# WebSocket for real-time updates
+WS /ws/updates
+```
+
+### Frontend Features
+
+- **Real-time Dashboard**: Live updates of risk metrics and alerts
+- **Supplier Management**: View and manage supplier information
+- **Risk Monitoring**: Track risk factors and trends
+- **Interactive Maps**: Geographic visualization with Google Maps
+- **Alert System**: Real-time notifications for critical events
+- **Data Export**: Download reports and analysis results
+
+### API Documentation
+
+Access the interactive API documentation at:
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
 
 ## 🔧 Configuration
 
@@ -189,14 +305,26 @@ weather:
 ### Environment Variables
 
 ```bash
-# Required
+# Required API Keys
 SERP_API_KEY=your_serp_api_key
+WEATHER_API_KEY=your_weather_api_key
+GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 
-# Optional
+# Optional API Keys
 TWITTER_BEARER_TOKEN=your_twitter_token
 OPENCAGE_KEY=your_opencage_key
+
+# Database Configuration
+MONGODB_HOST=localhost
+MONGODB_PORT=27017
+MONGODB_DATABASE=Ceronix
+MONGODB_USERNAME=your_username
+MONGODB_PASSWORD=your_password
+
+# System Configuration
 HTTP_PROXY=your_proxy_url
 LOG_LEVEL=INFO
+REACT_APP_API_URL=http://localhost:8000
 ```
 
 ## 📊 Output Schema
@@ -237,6 +365,9 @@ python -m orchestrator.cli test-agents
 # Test specific components
 pytest tests/test_registry.py -v
 pytest tests/test_features.py -v
+
+# Test system health
+python test_system.py
 ```
 
 ## 🐳 Docker Deployment
@@ -337,18 +468,6 @@ pipeline = SupplyChainMLPipeline("supplychain_model.pth")
 predictions = pipeline.predict_risk(features_df)
 ```
 
-## 📝 License
-
-This project is part of the supply chain risk analysis system. See the main repository for license information.
-
-## 🆘 Support
-
-For issues and questions:
-1. Check the logs in `logs/supply_agents.log`
-2. Run `python -m orchestrator.cli check-setup`
-3. Review the configuration files
-4. Check API key validity and rate limits
-
 ## 🔮 Future Enhancements
 
 - [ ] Real-time streaming data ingestion
@@ -357,6 +476,43 @@ For issues and questions:
 - [ ] Multi-language support for global suppliers
 - [ ] Integration with more data sources
 - [ ] Advanced caching and performance optimization
-#   S u p p y - C h a i n - M a n a g e m e n t 
- 
- 
+- [ ] Machine learning model integration
+- [ ] Advanced analytics and reporting
+- [ ] Mobile application support
+- [ ] Multi-tenant architecture
+
+## 🎯 System Status
+
+### Current Capabilities
+- ✅ **Backend API**: Fully functional with all endpoints
+- ✅ **Frontend Dashboard**: React-based with real-time updates
+- ✅ **Multi-Agent System**: All 8 agents implemented and working
+- ✅ **Google Maps Integration**: Advanced geocoding and location services
+- ✅ **MongoDB Integration**: Scalable data storage
+- ✅ **Docker Support**: Containerized deployment ready
+- ✅ **Error Handling**: Robust error handling and logging
+- ✅ **Performance Optimized**: Debounced API calls and efficient rendering
+
+### Production Ready Features
+- 🔒 **Security**: Environment variable management and API key protection
+- 📊 **Monitoring**: Comprehensive logging and health checks
+- 🚀 **Scalability**: Docker containerization and MongoDB integration
+- 🔄 **Real-time**: WebSocket support for live updates
+- 📱 **Responsive**: Modern React frontend with optimized performance
+
+## 📞 Support & Contact
+
+For technical support, issues, or questions:
+
+1. **Check System Health**: `python test_system.py`
+2. **View Logs**: `tail -f logs/supply_agents.log`
+3. **API Documentation**: http://localhost:8000/docs
+4. **Health Check**: http://localhost:8000/api/health
+
+## 📄 License
+
+This project is part of the CERONIX Supply Chain Risk Analysis System. All rights reserved.
+
+---
+
+**Built with ❤️ for supply chain risk management**

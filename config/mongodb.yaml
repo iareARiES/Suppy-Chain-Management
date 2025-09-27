@@ -1,0 +1,164 @@
+# MongoDB Configuration for CERONIX Supply Chain Risk Analysis
+# This file contains database configuration settings
+
+database:
+  name: "Ceronix"
+  host: "localhost"
+  port: 27017
+  
+  # Connection settings
+  connection:
+    timeout: 5000  # milliseconds
+    server_selection_timeout: 5000  # milliseconds
+    max_pool_size: 100
+    min_pool_size: 10
+    max_idle_time: 30000  # milliseconds
+  
+  # Authentication (optional)
+  auth:
+    enabled: false
+    username: ""
+    password: ""
+    auth_source: "admin"
+  
+  # Collections configuration
+  collections:
+    nodes:
+      indexes:
+        - field: "node_id"
+          unique: true
+        - field: "country"
+        - field: "node_type"
+        - field: "tier"
+        - field: ["lat", "lon"]
+        - field: ["name", "country"]
+          type: "text"
+    
+    news_events:
+      indexes:
+        - field: "node_id"
+        - field: "ts"
+          order: "desc"
+        - field: "outlet"
+        - field: "sentiment_score"
+        - field: "ts_ingested"
+          order: "desc"
+        - field: "url"
+          unique: true
+        - field: ["headline", "snippet"]
+          type: "text"
+        - field: ["node_id", "ts"]
+          order: "desc"
+    
+    social_events:
+      indexes:
+        - field: "node_id"
+        - field: "ts"
+          order: "desc"
+        - field: "handle"
+        - field: "sentiment_score"
+        - field: "engagement_count"
+          order: "desc"
+        - field: "ts_ingested"
+          order: "desc"
+        - field: "text"
+          type: "text"
+        - field: ["node_id", "ts"]
+          order: "desc"
+    
+    extracted_events:
+      indexes:
+        - field: "node_id"
+        - field: "event_type"
+        - field: "ts_event"
+          order: "desc"
+        - field: "severity"
+        - field: "confidence"
+          order: "desc"
+        - field: "source_url"
+        - field: "extracted_text"
+          type: "text"
+        - field: ["node_id", "event_type"]
+        - field: ["node_id", "ts_event"]
+          order: "desc"
+    
+    weather_anomalies:
+      indexes:
+        - field: "node_id"
+        - field: "ts"
+          order: "desc"
+        - field: "anomaly_type"
+        - field: "severity"
+        - field: ["node_id", "anomaly_type"]
+        - field: ["node_id", "ts"]
+          order: "desc"
+    
+    market_signals:
+      indexes:
+        - field: "node_id"
+        - field: "ticker"
+        - field: "ts"
+          order: "desc"
+        - field: "signal_type"
+        - field: ["node_id", "signal_type"]
+        - field: ["ticker", "ts"]
+          order: "desc"
+    
+    feature_rows:
+      indexes:
+        - field: "node_id"
+          unique: true
+        - field: "country"
+        - field: "node_type"
+        - field: "tier"
+        - field: "disruption_within_7d"
+        - field: "news_velocity"
+          order: "desc"
+        - field: ["name", "country"]
+          type: "text"
+    
+    region_configs:
+      indexes:
+        - field: "name"
+          unique: true
+        - field: "name"
+          type: "text"
+
+# Data retention policies
+retention:
+  news_events: 90  # days
+  social_events: 90  # days
+  extracted_events: 180  # days
+  weather_anomalies: 365  # days
+  market_signals: 365  # days
+  feature_rows: 0  # keep forever
+  region_configs: 0  # keep forever
+
+# Backup configuration
+backup:
+  enabled: true
+  schedule: "daily"  # daily, weekly, monthly
+  retention_days: 30
+  collections:
+    - "nodes"
+    - "news_events"
+    - "social_events"
+    - "extracted_events"
+    - "weather_anomalies"
+    - "market_signals"
+    - "feature_rows"
+    - "region_configs"
+
+# Performance settings
+performance:
+  # Query optimization
+  query_timeout: 30000  # milliseconds
+  max_query_results: 10000
+  
+  # Aggregation settings
+  aggregation_timeout: 60000  # milliseconds
+  max_aggregation_memory: 100  # MB
+  
+  # Index optimization
+  background_index_build: true
+  index_build_timeout: 300000  # milliseconds

@@ -1,0 +1,120 @@
+regions:
+  china:
+    name: "China"
+    outlets:
+      - name: "South China Morning Post"
+        domain: "scmp.com"
+        rss: "https://www.scmp.com/rss/91/feed"
+        x_handle: "@SCMPNews"
+      - name: "Caixin Global"
+        domain: "caixinglobal.com"
+        rss: "https://www.caixinglobal.com/rss"
+        x_handle: "@caixin"
+      - name: "Yicai Global"
+        domain: "yicaiglobal.com"
+        rss: "https://www.yicaiglobal.com/rss"
+        x_handle: "@yicaiglobal"
+      - name: "Sixth Tone"
+        domain: "sixthtone.com"
+        rss: "https://www.sixthtone.com/rss"
+        x_handle: "@SixthTone"
+      - name: "The Paper"
+        domain: "thepaper.cn"
+        rss: "https://www.thepaper.cn/rss"
+        x_handle: "@thepapercn"
+
+  taiwan:
+    name: "Taiwan"
+    outlets:
+      - name: "Focus Taiwan"
+        domain: "focustaiwan.tw"
+        rss: "https://focustaiwan.tw/rss"
+        x_handle: "@Focus_Taiwan"
+      - name: "Taipei Times"
+        domain: "taipeitimes.com"
+        rss: "https://www.taipeitimes.com/rss"
+        x_handle: "@TaipeiTimes"
+
+  south_korea:
+    name: "South Korea"
+    outlets:
+      - name: "Yonhap News"
+        domain: "en.yna.co.kr"
+        rss: "https://en.yna.co.kr/rss"
+        x_handle: "@YonhapNews"
+      - name: "Korea Herald"
+        domain: "koreaherald.com"
+        rss: "https://www.koreaherald.com/rss"
+        x_handle: "@KoreaHerald"
+
+  vietnam:
+    name: "Vietnam"
+    outlets:
+      - name: "VnExpress"
+        domain: "vnexpress.net"
+        rss: "https://vnexpress.net/rss"
+        x_handle: "@vnexpress"
+      - name: "VietnamPlus"
+        domain: "en.vietnamplus.vn"
+        rss: "https://en.vietnamplus.vn/rss"
+        x_handle: "@VietnamPlus"
+
+  thailand:
+    name: "Thailand"
+    outlets:
+      - name: "Bangkok Post"
+        domain: "bangkokpost.com"
+        rss: "https://www.bangkokpost.com/rss"
+        x_handle: "@BangkokPostNews"
+      - name: "The Nation"
+        domain: "nationthailand.com"
+        rss: "https://www.nationthailand.com/rss"
+        x_handle: "@NationNews"
+
+  malaysia:
+    name: "Malaysia"
+    outlets:
+      - name: "The Star"
+        domain: "thestar.com.my"
+        rss: "https://www.thestar.com.my/rss"
+        x_handle: "@staronline"
+      - name: "New Straits Times"
+        domain: "nst.com.my"
+        rss: "https://www.nst.com.my/rss"
+        x_handle: "@NST_Online"
+
+  india:
+    name: "India"
+    outlets:
+      - name: "The Hindu"
+        domain: "thehindu.com"
+        rss: "https://www.thehindu.com/rss"
+        x_handle: "@the_hindu"
+      - name: "Economic Times"
+        domain: "economictimes.indiatimes.com"
+        rss: "https://economictimes.indiatimes.com/rss"
+        x_handle: "@EconomicTimes"
+
+  japan:
+    name: "Japan"
+    outlets:
+      - name: "Japan Times"
+        domain: "japantimes.co.jp"
+        rss: "https://www.japantimes.co.jp/rss"
+        x_handle: "@japantimes"
+      - name: "NHK World"
+        domain: "nhk.or.jp"
+        rss: "https://www3.nhk.or.jp/nhkworld/en/rss"
+        x_handle: "@NHKWORLD_News"
+
+  global:
+    name: "Global"
+    outlets:
+      - name: "Reuters"
+        domain: "reuters.com"
+        rss: "https://feeds.reuters.com/reuters/businessNews"
+        x_handle: "@Reuters"
+      - name: "Nikkei Asia"
+        domain: "asia.nikkei.com"
+        rss: "https://asia.nikkei.com/rss"
+        x_handle: "@NikkeiAsia"

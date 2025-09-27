@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  supply-chain-analysis:
+    build: .
+    container_name: supply-chain-risk-analysis
+    environment:
+      - SERP_API_KEY=${SERP_API_KEY}
+      - TWITTER_BEARER_TOKEN=${TWITTER_BEARER_TOKEN}
+      - OPENCAGE_KEY=${OPENCAGE_KEY}
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./data:/app/data
+      - ./cache:/app/cache
+      - ./logs:/app/logs
+    command: python -m orchestrator.cli run-all
+    restart: unless-stopped
+
+  prefect-server:
+    image: prefecthq/prefect:2-python3.11
+    container_name: prefect-server
+    ports:
+      - "4200:4200"
+    environment:
+      - PREFECT_API_URL=http://localhost:4200/api
+    command: prefect server start --host 0.0.0.0
+    restart: unless-stopped
+
+  # Optional: Redis for caching (not required for basic operation)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: supply-chain-redis
+  #   ports:
+  #     - "6379:6379"
+  #   restart: unless-stopped

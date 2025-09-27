@@ -1,0 +1,46 @@
+serp:
+  base: "https://serpapi.com/search.json"
+  engine: "google"
+  country: "us"
+  lang: "en"
+  results: 10
+
+crawl:
+  concurrency: 4
+  timeout_s: 20
+
+nlp:
+  model: "distilbert-base-uncased-finetuned-sst-2-english"
+  min_chars: 40
+
+windows:
+  news_1d_hours: 24
+  news_7d_days: 7
+  neg_frac_3d_hours: 72
+  baseline_days: 30
+
+weather:
+  provider: "open-meteo"
+  precip_heavy_mm: 40
+  wind_high_kmh: 70
+  heatwave_c: 38
+
+features:
+  clip_news_velocity: 5.0
+
+rate_limits:
+  serp_requests_per_hour: 100
+  rss_requests_per_minute: 10
+  crawl_requests_per_minute: 5
+  weather_requests_per_minute: 10
+
+retry:
+  max_attempts: 3
+  base_delay: 1.0
+  max_delay: 60.0
+  exponential_base: 2.0
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "logs/supply_agents.log"
